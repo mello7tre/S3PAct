@@ -37,23 +37,31 @@ def get_args():
     parent_parser.add_argument("--start-after", help="Start after specified key")
     parent_parser.add_argument("-b", "--bucket", help="Bucket", required=True)
     parent_parser.add_argument("--dry", help="Dry Run", action="store_true")
+    parent_parser.add_argument(
+        "--versions", help="Execute Action on Non-Current Versions", action="store_true"
+    )
+    parent_parser.add_argument(
+        "--skip-current-version",
+        help="Do not Exdcute Action on Current Version",
+        action="store_true",
+    )
+    parent_parser.add_argument(
+        "--delete-marker", help="Execute Action on DeleteMarkers", action="store_true"
+    )
+    parent_parser.add_argument(
+        "-w",
+        "--max-s3-workers",
+        help=f"Max S3 Workers to use [{MAX_S3_WORKERS}]",
+        type=int,
+        default=MAX_S3_WORKERS,
+    )
+    parent_parser.add_argument("--stop-on-error", help="Stop on Action Error")
 
     # ls parser
     parser_ls = subparsers.add_parser(
         "ls",
         parents=[parent_parser],
         help="List s3 keys versions and optionally DeleteMarker",
-    )
-    parser_ls.add_argument(
-        "--no-versions", help="Do not List Versions", action="store_true"
-    )
-    parser_ls.add_argument(
-        "--delete-marker", help="List DeleteMarkers", action="store_true"
-    )
-    parser_ls.add_argument(
-        "--skip-current-version",
-        help="Do not List Current Version",
-        action="store_true",
     )
 
     # rm parser
@@ -62,23 +70,6 @@ def get_args():
         parents=[parent_parser],
         help="Remove s3 keys, optionally versions and delete marker",
     )
-    parser_rm.add_argument("--versions", help="Remove Versions", action="store_true")
-    parser_rm.add_argument(
-        "--delete-marker", help="Remove DeleteMarkers", action="store_true"
-    )
-    parser_rm.add_argument(
-        "--skip-current-version",
-        help="Do not remove Current Version",
-        action="store_true",
-    )
-    parser_rm.add_argument(
-        "-w",
-        "--max-s3-workers",
-        help=f"Max S3 Workers to use [{MAX_S3_WORKERS}]",
-        type=int,
-        default=MAX_S3_WORKERS,
-    )
-    parser_rm.add_argument("--stop-on-error", help="Stop on remove error")
 
     # cp parser
     parser_cp = subparsers.add_parser(
@@ -86,23 +77,10 @@ def get_args():
         parents=[parent_parser],
         help="Copy Key from Bucket to SourceBucket",
     )
-    parser_cp.add_argument("--versions", help="Copy Versions", action="store_true")
-    parser_cp.add_argument(
-        "--delete-marker", help="Copy DeleteMarkers", action="store_true"
-    )
-    parser_cp.add_argument(
-        "--skip-current-version",
-        help="Do not copy Current Version",
-        action="store_true",
-    )
     parser_cp.add_argument(
         "-d", "--dest-bucket", help="Destination Bucket", required=True
     )
     parser_cp.add_argument("--dest-region", help="Destination Region")
-    parser_cp.add_argument(
-        "-w", "--max-s3-workers", help="Max S3 Workers to use", type=int
-    )
-    parser_cp.add_argument("--stop-on-error", help="Stop on copy error")
 
     args = parser.parse_args()
     return args
@@ -120,25 +98,24 @@ def execute_s3_action(args, kwargs, client, key, version_id, latest, n_tot, s_to
     s_tot = human_readable_size(s_tot)
 
     if args.skip_current_version and latest:
+        # skip current
         return
+    if not args.versions and not latest:
+        # skip versions
+        return
+
     is_latest = "*" if latest else ""
 
     try:
-        if args.action == "ls" and args.no_versions and not latest:
-            # do not want versions
-            return
-        elif args.action in ["rm", "cp"] and not args.versions and not latest:
-            # do not want versions
-            return
-        elif args.action == "rm":
+        if args.action == "rm":
             kwargs["Key"] = key
             kwargs["VersionId"] = version_id
-            #resp = client.delete_object(**kwargs)
+            # resp = client.delete_object(**kwargs)
         elif args.action == "cp":
             kwargs["Key"] = key
             kwargs["CopySource"]["Key"] = key
             kwargs["CopySource"]["VersionId"] = version_id
-            #resp = client.copy_object(**kwargs)
+            # resp = client.copy_object(**kwargs)
 
         print(kwargs)
     except Exception as e:
@@ -146,7 +123,9 @@ def execute_s3_action(args, kwargs, client, key, version_id, latest, n_tot, s_to
     else:
         status = "OK"
 
-    logger.info(f"KEY: {key}, V: {version_id} [{is_latest}], N: {n_tot}, S: {s_tot}, STATUS: {status}")
+    logger.info(
+        f"KEY: {key}, V: {version_id} [{is_latest}], N: {n_tot}, S: {s_tot}, STATUS: {status}"
+    )
 
 
 def get_kwargs_clients(args):
@@ -156,11 +135,10 @@ def get_kwargs_clients(args):
 
     k_s3_act = {}
     k_s3_act_cfg = {}
-    if args.action == "cp":
-        k_s3_act_cfg["max_pool_connections"] = args.max_s3_workers
-        if args.dest_region:
-            k_s3_act_cfg["region_name"] = args.dest_region
-        k_s3_act["config"] = botocore.client.Config(**k_s3_act_cfg)
+    k_s3_act_cfg["max_pool_connections"] = args.max_s3_workers
+    if args.dest_region:
+        k_s3_act_cfg["region_name"] = args.dest_region
+    k_s3_act["config"] = botocore.client.Config(**k_s3_act_cfg)
 
     return k_s3_ls, k_s3_act
 
@@ -188,6 +166,9 @@ def run():
     n_tot = s_tot = 0
 
     args = get_args()
+
+    if args.skip_current_version and not versions:
+        return
 
     kwargs_s3_client_ls, kwargs_s3_client_action = get_kwargs_clients(args)
     kwargs_s3_ls, kwargs_s3_action = get_kwargs_acts(args)
