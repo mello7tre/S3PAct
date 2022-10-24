@@ -1,7 +1,5 @@
 import boto3
 import botocore
-import os
-import time
 import logging
 import argparse
 import concurrent.futures
@@ -118,35 +116,29 @@ def human_readable_size(size, decimal_places=2):
     return f"{size:.{decimal_places}f} {unit}"
 
 
-
-def action_cp(args, kwargs, client, key, version, latest):
-    resp = client.copy_object(**kwargs)
-
-def action_cp(args, kwargs, client, key, version, latest):
-    resp = client.copy_object(**kwargs)
-
 def execute_s3_action(args, kwargs, client, key, version_id, latest, n_tot, s_tot):
     s_tot = human_readable_size(s_tot)
 
-    if args.skip_current_version and latest == True:
+    if args.skip_current_version and latest:
         return
     is_latest = "*" if latest else ""
 
     try:
-        if args.action == "ls" and args.no_versions == False and latest == False:
+        if args.action == "ls" and not args.no_versions and not latest:
             return
-        elif args.action in ["rm", "cp"] and args.versions == False and latest == False:
+        elif args.action in ["rm", "cp"] and not args.versions and not latest:
             return
         elif args.action == "rm":
             kwargs["Key"] = key
             kwargs["VersionId"] = version_id
-            resp = client.delete_object(**kwargs)
+            #resp = client.delete_object(**kwargs)
         elif args.action == "cp":
             kwargs["Key"] = key
             kwargs["CopySource"]["Key"] = key
             kwargs["CopySource"]["VersionId"] = version_id
-            resp = client.copy_object(**kwargs)
+            #resp = client.copy_object(**kwargs)
 
+        print(kwargs)
     except Exception as e:
         status = f"ERROR [{e}]"
     else:
@@ -182,7 +174,7 @@ def get_kwargs_acts(args):
         k_ls["KeyMarker"] = args.start_after
 
     k_act["Bucket"] = args.dest_bucket
-    if arg.action == "cp":
+    if args.action == "cp":
         k_act["CopySource"] = {
             "Bucket": args.bucket,
         }
