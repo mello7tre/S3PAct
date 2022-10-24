@@ -124,9 +124,11 @@ def execute_s3_action(args, kwargs, client, key, version_id, latest, n_tot, s_to
     is_latest = "*" if latest else ""
 
     try:
-        if args.action == "ls" and not args.no_versions and not latest:
+        if args.action == "ls" and args.no_versions and not latest:
+            # do not want versions
             return
         elif args.action in ["rm", "cp"] and not args.versions and not latest:
+            # do not want versions
             return
         elif args.action == "rm":
             kwargs["Key"] = key
