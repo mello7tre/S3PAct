@@ -107,7 +107,9 @@ def execute_s3_action(args, kwargs, client, key, version_id, latest, n_tot, s_to
     is_latest = "*" if latest else ""
 
     try:
-        if args.action == "rm":
+        if args.dry:
+            pass
+        elif args.action == "rm":
             kwargs["Key"] = key
             kwargs["VersionId"] = version_id
             # resp = client.delete_object(**kwargs)
