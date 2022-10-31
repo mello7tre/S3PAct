@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import boto3
 import botocore
 import logging
@@ -133,12 +134,12 @@ def execute_s3_action(args, kwargs, client, key, version_id, latest, n_tot, s_to
 def get_kwargs_clients(args):
     k_s3_ls = {}
     if args.region:
-        k_s3_ls["region_name"] = args.dest_region
+        k_s3_ls["region_name"] = args.region
 
     k_s3_act = {}
     k_s3_act_cfg = {}
     k_s3_act_cfg["max_pool_connections"] = args.max_s3_workers
-    if args.dest_region:
+    if args.action == "cp" and args.dest_region:
         k_s3_act_cfg["region_name"] = args.dest_region
     k_s3_act["config"] = botocore.client.Config(**k_s3_act_cfg)
 
@@ -149,14 +150,15 @@ def get_kwargs_acts(args):
     k_ls = {}
     k_act = {}
 
-    k_ls["Bucket"] == args.bucket
+    k_ls["Bucket"] = args.bucket
+    k_act["Bucket"] = args.bucket
     if args.prefix:
         k_ls["Prefix"] = args.prefix
     if args.start_after:
         k_ls["KeyMarker"] = args.start_after
 
-    k_act["Bucket"] = args.dest_bucket
     if args.action == "cp":
+        k_act["Bucket"] = args.dest_bucket
         k_act["CopySource"] = {
             "Bucket": args.bucket,
         }
@@ -169,7 +171,7 @@ def run():
 
     args = get_args()
 
-    if args.skip_current_version and not versions:
+    if args.skip_current_version and not args.versions:
         return
 
     kwargs_s3_client_ls, kwargs_s3_client_action = get_kwargs_clients(args)
@@ -187,10 +189,11 @@ def run():
             max_workers=args.max_s3_workers
         ) as executor:
             future_to_stack = {}
-            list_objs = r.get("Versions", []).reverse()
+            list_objs = r.get("Versions", [])
+            list_objs.reverse()
 
             if args.delete_marker:
-                list_objs += r.get("DeleteMarkers", []).reverse()
+                list_objs += r.get("DeleteMarkers", [])
 
             for p in list_objs:
                 s3_key = p.get("Key")
