@@ -118,15 +118,15 @@ def execute_s3_action(args, kwargs, client, key, version_id, latest, n_tot, s_to
             kwargs["Key"] = key
             kwargs["CopySource"]["Key"] = key
             kwargs["CopySource"]["VersionId"] = version_id
-            # resp = client.copy_object(**kwargs)
+            resp = client.copy_object(**kwargs)
 
-        print(kwargs)
+        #print(kwargs)
     except Exception as e:
         status = f"ERROR [{e}]"
     else:
         status = "OK"
 
-    logger.info(
+    return (
         f"KEY: {key}, V: {version_id} [{is_latest}], N: {n_tot}, S: {s_tot}, STATUS: {status}"
     )
 
@@ -216,12 +216,14 @@ def run():
                 )
                 future_to_stack[ex_sub] = s3_key
 
-            for future in concurrent.futures.as_completed(future_to_stack):
+            for future in future_to_stack:
                 obj = future_to_stack[future]
                 try:
                     s3_status = future.result()
                 except Exception as e:
                     break
+                else:
+                    logger.info(s3_status)
 
             if args.stop_on_error:
                 for future in future_to_stack:
