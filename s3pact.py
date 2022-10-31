@@ -35,7 +35,10 @@ def get_args():
         help="S3 key Prefix",
         default="",
     )
-    parent_parser.add_argument("--start-after", help="Start after specified key")
+    parent_parser.add_argument("--start-after", help="Start at the specified key")
+    parent_parser.add_argument(
+        "--version-id-marker", help="Start at the specified key version"
+    )
     parent_parser.add_argument("-b", "--bucket", help="Bucket", required=True)
     parent_parser.add_argument("--dry", help="Dry Run", action="store_true")
     parent_parser.add_argument(
@@ -120,15 +123,13 @@ def execute_s3_action(args, kwargs, client, key, version_id, latest, n_tot, s_to
             kwargs["CopySource"]["VersionId"] = version_id
             resp = client.copy_object(**kwargs)
 
-        #print(kwargs)
+        # print(kwargs)
     except Exception as e:
         status = f"ERROR [{e}]"
     else:
         status = "OK"
 
-    return (
-        f"KEY: {key}, V: {version_id} [{is_latest}], N: {n_tot}, S: {s_tot}, STATUS: {status}"
-    )
+    return f"KEY: {key}, V: {version_id} [{is_latest}], N: {n_tot}, S: {s_tot}, STATUS: {status}"
 
 
 def get_kwargs_clients(args):
@@ -156,6 +157,8 @@ def get_kwargs_acts(args):
         k_ls["Prefix"] = args.prefix
     if args.start_after:
         k_ls["KeyMarker"] = args.start_after
+    if args.start_after and args.version_id_marker:
+        k_ls["VersionIdMarker"] = args.version_id_marker
 
     if args.action == "cp":
         k_act["Bucket"] = args.dest_bucket
@@ -164,6 +167,26 @@ def get_kwargs_acts(args):
         }
 
     return k_ls, k_act
+
+
+def reverse_versions(objs):
+    resp = []
+    list_versions = []
+    s3_key_before = None
+    for o in objs:
+        s3_key = o.get("Key")
+        if s3_key_before != s3_key and list_versions:
+            list_versions.reverse()
+            resp.extend(list_versions)
+            list_versions.clear()
+        list_versions.append(o)
+        s3_key_before = s3_key
+
+    # need to invert
+    list_versions.reverse()
+
+    # and append the last obj versions or i will miss it
+    return resp + list_versions
 
 
 def run():
@@ -190,7 +213,8 @@ def run():
         ) as executor:
             future_to_stack = {}
             list_objs = r.get("Versions", [])
-            list_objs.reverse()
+
+            list_objs = reverse_versions(list_objs)
 
             if args.delete_marker:
                 list_objs += r.get("DeleteMarkers", [])
