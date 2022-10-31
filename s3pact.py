@@ -112,7 +112,7 @@ def execute_s3_action(args, kwargs, client, key, version_id, latest, n_tot, s_to
     is_latest = "*" if latest else ""
 
     try:
-        if args.dry:
+        if args.dry or args.action == "ls":
             pass
         elif args.action == "rm":
             kwargs["Key"] = key
