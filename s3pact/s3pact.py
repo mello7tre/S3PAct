@@ -218,8 +218,9 @@ def run():
         ) as executor:
             future_to_stack = {}
             list_objs = r.get("Versions", [])
-
-            list_objs = reverse_versions(list_objs)
+            
+            if args.versions:
+                list_objs = reverse_versions(list_objs)
 
             if args.delete_marker:
                 list_objs += r.get("DeleteMarkers", [])
