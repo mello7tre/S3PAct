@@ -117,7 +117,7 @@ def execute_s3_action(args, kwargs, client, key, version_id, latest, n_tot, s_to
         elif args.action == "rm":
             kwargs["Key"] = key
             kwargs["VersionId"] = version_id
-            # resp = client.delete_object(**kwargs)
+            resp = client.delete_object(**kwargs)
         elif args.action == "cp":
             kwargs["Key"] = key
             kwargs["CopySource"]["Key"] = key
@@ -128,7 +128,7 @@ def execute_s3_action(args, kwargs, client, key, version_id, latest, n_tot, s_to
     except Exception as e:
         status = f"ERROR [{e}]"
     else:
-        status = "OK"
+        status = "OK [DRY]" if args.dry else "OK"
 
     return f"KEY: {key}, V: {version_id} [{is_latest}], N: {n_tot}, S: {s_tot}, STATUS: {status}"
 
