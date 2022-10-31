@@ -134,7 +134,7 @@ def execute_s3_action(args, kwargs, client, data):
     else:
         status = "OK [DRY]" if args.dry else "OK"
 
-    return f"KEY: {key}, V: {version_id} [{is_latest}], SIZE: {key_size}, D: {date}, N: {n_tot}, S: {s_tot}, STATUS: {status}"
+    return f"KEY: {key}, KV: {version_id} [{is_latest}], KS: {key_size}, KD: {date}, N: {n_tot}, S: {s_tot}, STATUS: {status}"
 
 
 def get_kwargs_clients(args):
