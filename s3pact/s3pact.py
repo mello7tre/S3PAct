@@ -142,11 +142,13 @@ def execute_s3_action(args, kwargs, client, data):
 
 def get_kwargs_clients(args):
     k_s3_ls = {}
-    if args.region:
-        k_s3_ls["region_name"] = args.region
-
     k_s3_act = {}
     k_s3_act_cfg = {}
+
+    if args.region:
+        k_s3_ls["region_name"] = args.region
+        k_s3_act_cfg["region_name"] = args.region
+
     k_s3_act_cfg["max_pool_connections"] = args.max_s3_workers
     if args.action == "cp" and args.dest_region:
         k_s3_act_cfg["region_name"] = args.dest_region
