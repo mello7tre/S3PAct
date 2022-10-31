@@ -6,7 +6,7 @@ import argparse
 import concurrent.futures
 
 logging.basicConfig()
-logger = logging.getLogger()
+logger = logging.getLogger("s3pact")
 logger.setLevel(logging.INFO)
 
 MAX_S3_WORKERS = 20
