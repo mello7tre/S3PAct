@@ -99,20 +99,21 @@ def human_readable_size(size, decimal_places=2):
     return f"{size:.{decimal_places}f} {unit}"
 
 
-def execute_s3_action(
-    args, kwargs, client, key, version_id, latest, n_tot, s_tot, key_size
-):
-    s_tot = human_readable_size(s_tot)
-    key_size = human_readable_size(key_size)
+def execute_s3_action(args, kwargs, client, data):
+    date = data["date"]
+    n_tot = data["n_tot"]
+    key = data["key"]
+    version_id = data["version"]
+    s_tot = human_readable_size(data["s_tot"])
+    key_size = human_readable_size(data["size"])
+    is_latest = "*" if data["latest"] else ""
 
-    if args.skip_current_version and latest:
+    if args.skip_current_version and is_latest:
         # skip current
         return
-    if not args.versions and not latest:
+    if not args.versions and not is_latest:
         # skip versions
         return
-
-    is_latest = "*" if latest else ""
 
     try:
         if args.dry or args.action == "ls":
@@ -133,7 +134,7 @@ def execute_s3_action(
     else:
         status = "OK [DRY]" if args.dry else "OK"
 
-    return f"KEY: {key}, V: {version_id} [{is_latest}], SIZE: {key_size}, N: {n_tot}, S: {s_tot}, STATUS: {status}"
+    return f"KEY: {key}, V: {version_id} [{is_latest}], SIZE: {key_size}, D: {date}, N: {n_tot}, S: {s_tot}, STATUS: {status}"
 
 
 def get_kwargs_clients(args):
@@ -224,25 +225,24 @@ def run():
                 list_objs += r.get("DeleteMarkers", [])
 
             for p in list_objs:
-                s3_key = p.get("Key")
-                s3_key_version = p.get("VersionId")
-                s3_key_size = p.get("Size")
-                s3_key_latest = p.get("IsLatest")
                 n_tot += 1
-                key_size = s3_key_size
-                s_tot += s3_key_size
+                s_tot += p.get("Size")
+                s3_key_data = {
+                    "key": p.get("Key"),
+                    "version": p.get("VersionId"),
+                    "size": p.get("Size"),
+                    "latest": p.get("IsLatest"),
+                    "date": p.get("LastModified"),
+                    "n_tot": n_tot,
+                    "s_tot": s_tot,
+                }
 
                 ex_sub = executor.submit(
                     execute_s3_action,
                     args,
                     kwargs_s3_action,
                     s3_client_action,
-                    s3_key,
-                    s3_key_version,
-                    s3_key_latest,
-                    n_tot,
-                    s_tot,
-                    key_size,
+                    s3_key_data,
                 )
                 future_to_stack[ex_sub] = s3_key
 
