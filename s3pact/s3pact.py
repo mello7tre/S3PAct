@@ -236,7 +236,7 @@ def run():
                 s3_key_data = {
                     "key": p.get("Key"),
                     "version": p.get("VersionId"),
-                    "size": p.get("Size"),
+                    "size": p.get("Size", 0),
                     "latest": p.get("IsLatest"),
                     "date": p.get("LastModified"),
                     "n_tot": n_tot,
