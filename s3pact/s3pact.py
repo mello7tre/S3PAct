@@ -99,8 +99,11 @@ def human_readable_size(size, decimal_places=2):
     return f"{size:.{decimal_places}f} {unit}"
 
 
-def execute_s3_action(args, kwargs, client, key, version_id, latest, n_tot, s_tot):
+def execute_s3_action(
+    args, kwargs, client, key, version_id, latest, n_tot, s_tot, key_size
+):
     s_tot = human_readable_size(s_tot)
+    key_size = human_readable_size(key_size)
 
     if args.skip_current_version and latest:
         # skip current
@@ -130,7 +133,7 @@ def execute_s3_action(args, kwargs, client, key, version_id, latest, n_tot, s_to
     else:
         status = "OK [DRY]" if args.dry else "OK"
 
-    return f"KEY: {key}, V: {version_id} [{is_latest}], N: {n_tot}, S: {s_tot}, STATUS: {status}"
+    return f"KEY: {key}, V: {version_id} [{is_latest}], SIZE: {key_size}, N: {n_tot}, S: {s_tot}, STATUS: {status}"
 
 
 def get_kwargs_clients(args):
@@ -226,6 +229,7 @@ def run():
                 s3_key_size = p.get("Size")
                 s3_key_latest = p.get("IsLatest")
                 n_tot += 1
+                key_size = s3_key_size
                 s_tot += s3_key_size
 
                 ex_sub = executor.submit(
@@ -238,6 +242,7 @@ def run():
                     s3_key_latest,
                     n_tot,
                     s_tot,
+                    key_size,
                 )
                 future_to_stack[ex_sub] = s3_key
 
