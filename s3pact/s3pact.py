@@ -3,11 +3,14 @@ import boto3
 import botocore
 import logging
 import argparse
+import locale
 import concurrent.futures
 
 logging.basicConfig()
 logger = logging.getLogger("s3pact")
 logger.setLevel(logging.INFO)
+
+locale.setlocale(locale.LC_ALL, '')
 
 MAX_S3_WORKERS = 20
 
@@ -134,7 +137,7 @@ def execute_s3_action(args, kwargs, client, data):
     else:
         status = "OK [DRY]" if args.dry else "OK"
 
-    return f"KEY: {key}, KV: {version_id} [{is_latest}], KS: {key_size}, KD: {date}, N: {n_tot}, S: {s_tot}, STATUS: {status}"
+    return f"KEY: {key}, KV: {version_id} [{is_latest}], KS: {key_size}, KD: {date}, N: {n_tot:n}, S: {s_tot}, STATUS: {status}"
 
 
 def get_kwargs_clients(args):
