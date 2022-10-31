@@ -244,7 +244,7 @@ def run():
                     s3_client_action,
                     s3_key_data,
                 )
-                future_to_stack[ex_sub] = s3_key
+                future_to_stack[ex_sub] = s3_key_data["key"]
 
             for future in future_to_stack:
                 obj = future_to_stack[future]
