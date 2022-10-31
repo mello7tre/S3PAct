@@ -37,7 +37,7 @@ def get_args():
     )
     parent_parser.add_argument("--start-after", help="Start at the specified key")
     parent_parser.add_argument(
-        "--version-id-marker", help="Start at the specified key version"
+        "--version-id-marker", help="Start at the specified key version (only if start-after is used too)"
     )
     parent_parser.add_argument("-b", "--bucket", help="Bucket", required=True)
     parent_parser.add_argument("--dry", help="Dry Run", action="store_true")
@@ -247,7 +247,8 @@ def run():
                 except Exception as e:
                     break
                 else:
-                    logger.info(s3_status)
+                    if s3_status:
+                        logger.info(s3_status)
 
             if args.stop_on_error:
                 for future in future_to_stack:
