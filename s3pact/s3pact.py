@@ -16,8 +16,11 @@ MAX_S3_WORKERS = 20
 
 
 def get_args():
+    description = "S3 Parallel Action\n\n"
+    description += "Output:\n Key, Key Version, Key Size, Key Date, Is Latest/Current, Number of returned objects, Size of returned objects, Status"
     parser = argparse.ArgumentParser(
-        description="S3 Parallel Action",
+        description=description,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="Note: rm action using versions option remove specific object version and do NOT create delete marker!",
     )
 
@@ -254,6 +257,8 @@ def run():
     if args.key:
         s3_client_get = boto3.client("s3", **kwargs_s3_client_ls)
         resp = s3_client_get.get_object_attributes(**kwargs_s3_ls)
+        n_tot += 1
+        s_tot += resp.get("ObjectSize", 0)
 
         print(
             execute_s3_action(
@@ -266,8 +271,8 @@ def run():
                     "size": resp.get("ObjectSize", 0),
                     "latest": False if args.versions else True,
                     "date": resp.get("LastModified"),
-                    "n_tot": 1,
-                    "s_tot": resp.get("ObjectSize", 0),
+                    "n_tot": n_tot,
+                    "s_tot": s_tot,
                 },
             )
         )
