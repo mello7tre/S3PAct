@@ -40,6 +40,8 @@ def get_args():
         default="",
     )
     parent_parser.add_argument("--start-after", help="Start after the specified key")
+    parent_parser.add_argument("--key", help="Act only on this key")
+    parent_parser.add_argument("--key-version", help="For key option, act only on this specific version")
     parent_parser.add_argument(
         "--version-id-marker",
         help="For the start-after key, act on versions older than this one only",
@@ -47,16 +49,16 @@ def get_args():
     parent_parser.add_argument("-b", "--bucket", help="Bucket", required=True)
     parent_parser.add_argument("--dry", help="Dry Run", action="store_true")
     parent_parser.add_argument(
-        "--versions", help="Execute Action on Non-Current Versions", action="store_true"
+        "--versions", help="Act on Non-Current Versions", action="store_true"
     )
     parent_parser.add_argument(
         "--skip-current-version",
-        help="Do not Exdcute Action on Current Version",
+        help="Do not act on Current Version",
         action="store_true",
     )
     parent_parser.add_argument(
         "--delete-marker",
-        help="Execute Action ONLY on DeleteMarkers",
+        help="Act ONLY on DeleteMarkers",
         action="store_true",
     )
     parent_parser.add_argument(
