@@ -119,17 +119,16 @@ def execute_s3_action(args, kwargs, client, data):
     version_id = data["version"]
     s_tot = human_readable_size(data["s_tot"])
     key_size = human_readable_size(data["size"])
-    is_latest = "*" if data["latest"] else ""
 
     if args.action == "cp" and args.dest_prefix:
         prefix = args.dest_prefix
     else:
         prefix = ""
 
-    if args.skip_current_version and is_latest:
+    if args.skip_current_version and data["latest"]:
         # skip current
         return
-    if not args.versions and not is_latest:
+    if not args.versions and not data["latest"]:
         # skip versions
         return
 
@@ -156,9 +155,10 @@ def execute_s3_action(args, kwargs, client, data):
 
     return {
         "KEY": f"{prefix}{key}",
-        "KV": f"{version_id} [{is_latest}]",
+        "KV": version_id,
         "KS": key_size,
         "KD": f"{date}",
+        "L/C": data["latest"],
         "N": f"{n_tot:n}",
         "S": s_tot,
         "STATUS": status,
