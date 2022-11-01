@@ -42,7 +42,7 @@ def get_args():
     parent_parser.add_argument("--start-after", help="Start after the specified key")
     parent_parser.add_argument(
         "--version-id-marker",
-        help="Skip key versions older than this one when using start-after",
+        help="For the start-after key, act on versions older than this one only",
     )
     parent_parser.add_argument("-b", "--bucket", help="Bucket", required=True)
     parent_parser.add_argument("--dry", help="Dry Run", action="store_true")
