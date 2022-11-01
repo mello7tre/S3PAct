@@ -120,7 +120,11 @@ def execute_s3_action(args, kwargs, client, data):
     s_tot = human_readable_size(data["s_tot"])
     key_size = human_readable_size(data["size"])
     is_latest = "*" if data["latest"] else ""
-    prefix = args.dest_prefix if args.dest_prefix else ""
+
+    if args.action == "cp" and args.dest_prefix:
+        prefix = args.dest_prefix
+    else:
+        prefix = ""
 
     if args.skip_current_version and is_latest:
         # skip current
