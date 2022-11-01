@@ -10,7 +10,7 @@ logging.basicConfig()
 logger = logging.getLogger("s3pact")
 logger.setLevel(logging.INFO)
 
-locale.setlocale(locale.LC_ALL, '')
+locale.setlocale(locale.LC_ALL, "")
 
 MAX_S3_WORKERS = 20
 
@@ -18,6 +18,7 @@ MAX_S3_WORKERS = 20
 def get_args():
     parser = argparse.ArgumentParser(
         description="S3 Parallel Action",
+        epilog="Note: rm action using versions option remove specific object version and do NOT create delete marker!",
     )
 
     # common parser
@@ -38,7 +39,7 @@ def get_args():
         help="S3 key Prefix",
         default="",
     )
-    parent_parser.add_argument("--start-after", help="Start at the specified key")
+    parent_parser.add_argument("--start-after", help="Start after the specified key")
     parent_parser.add_argument(
         "--version-id-marker",
         help="Skip key versions older than this one when using start-after",
@@ -54,7 +55,9 @@ def get_args():
         action="store_true",
     )
     parent_parser.add_argument(
-        "--delete-marker", help="Execute Action on DeleteMarkers", action="store_true"
+        "--delete-marker",
+        help="Execute Action ONLY on DeleteMarkers",
+        action="store_true",
     )
     parent_parser.add_argument(
         "-w",
@@ -123,12 +126,14 @@ def execute_s3_action(args, kwargs, client, data):
             pass
         elif args.action == "rm":
             kwargs["Key"] = key
-            kwargs["VersionId"] = version_id
+            if args.versions:
+                kwargs["VersionId"] = version_id
             resp = client.delete_object(**kwargs)
         elif args.action == "cp":
             kwargs["Key"] = key
             kwargs["CopySource"]["Key"] = key
-            kwargs["CopySource"]["VersionId"] = version_id
+            if args.versions:
+                kwargs["CopySource"]["VersionId"] = version_id
             resp = client.copy_object(**kwargs)
 
         # print(kwargs)
@@ -222,17 +227,17 @@ def run():
             max_workers=args.max_s3_workers
         ) as executor:
             future_to_stack = {}
-            list_objs = r.get("Versions", [])
-            
-            if args.versions:
-                list_objs = reverse_versions(list_objs)
 
             if args.delete_marker:
-                list_objs += r.get("DeleteMarkers", [])
+                list_objs = r.get("DeleteMarkers", [])
+            else:
+                list_objs = r.get("Versions", [])
+                if args.versions:
+                    list_objs = reverse_versions(list_objs)
 
             for p in list_objs:
                 n_tot += 1
-                s_tot += p.get("Size")
+                s_tot += p.get("Size", 0)
                 s3_key_data = {
                     "key": p.get("Key"),
                     "version": p.get("VersionId"),
@@ -260,7 +265,7 @@ def run():
                     break
                 else:
                     if s3_status:
-                        logger.info(s3_status)
+                        print(s3_status)
 
             if args.stop_on_error:
                 for future in future_to_stack:
