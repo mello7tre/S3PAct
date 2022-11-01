@@ -41,7 +41,9 @@ def get_args():
     )
     parent_parser.add_argument("--start-after", help="Start after the specified key")
     parent_parser.add_argument("--key", help="Act only on this key")
-    parent_parser.add_argument("--key-version", help="For key option, act only on this specific version")
+    parent_parser.add_argument(
+        "--key-version", help="For key option, act only on this specific version"
+    )
     parent_parser.add_argument(
         "--version-id-marker",
         help="For the start-after key, act on versions older than this one only",
@@ -170,12 +172,18 @@ def get_kwargs_acts(args):
 
     k_ls["Bucket"] = args.bucket
     k_act["Bucket"] = args.bucket
+
     if args.prefix:
         k_ls["Prefix"] = args.prefix
     if args.start_after:
         k_ls["KeyMarker"] = args.start_after
     if args.start_after and args.version_id_marker:
         k_ls["VersionIdMarker"] = args.version_id_marker
+    if args.key:
+        k_ls["Key"] = args.key
+        k_ls["ObjectAttributes"] = ["ObjectSize"]
+        if args.key_version:
+            k_ls["VersionId"] = args.key_version
 
     if args.action == "cp":
         k_act["Bucket"] = args.dest_bucket
@@ -211,6 +219,8 @@ def run():
 
     args = get_args()
 
+    if args.key_version:
+        args.versions = True
     if args.skip_current_version and not args.versions:
         return
 
@@ -219,6 +229,29 @@ def run():
 
     s3_client_ls = boto3.client("s3", **kwargs_s3_client_ls)
     s3_client_action = boto3.client("s3", **kwargs_s3_client_action)
+
+    # For specific key/version
+    if args.key:
+        s3_client_get = boto3.client("s3", **kwargs_s3_client_ls)
+        resp = s3_client_get.get_object_attributes(**kwargs_s3_ls)
+
+        print(
+            execute_s3_action(
+                args,
+                kwargs_s3_action,
+                s3_client_action,
+                {
+                    "key": args.key,
+                    "version": resp.get("VersionId"),
+                    "size": resp.get("ObjectSize", 0),
+                    "latest": False if args.versions else True,
+                    "date": resp.get("LastModified"),
+                    "n_tot": 1,
+                    "s_tot": resp.get("ObjectSize", 0),
+                },
+            )
+        )
+        return
 
     paginator = s3_client_ls.get_paginator("list_object_versions")
     response_iterator = paginator.paginate(**kwargs_s3_ls)
