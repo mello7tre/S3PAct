@@ -95,6 +95,9 @@ def get_args():
     parser_cp.add_argument(
         "-d", "--dest-bucket", help="Destination Bucket", required=True
     )
+    parser_cp.add_argument(
+        "--dest-prefix", help="put keys under this prefix on destination Bucket"
+    )
     parser_cp.add_argument("--dest-region", help="Destination Region")
 
     args = parser.parse_args()
@@ -117,6 +120,7 @@ def execute_s3_action(args, kwargs, client, data):
     s_tot = human_readable_size(data["s_tot"])
     key_size = human_readable_size(data["size"])
     is_latest = "*" if data["latest"] else ""
+    prefix = args.dest_prefix if args.dest_prefix else ""
 
     if args.skip_current_version and is_latest:
         # skip current
@@ -146,7 +150,7 @@ def execute_s3_action(args, kwargs, client, data):
     else:
         status = "OK [DRY]" if args.dry else "OK"
 
-    return f"KEY: {key}, KV: {version_id} [{is_latest}], KS: {key_size}, KD: {date}, N: {n_tot:n}, S: {s_tot}, STATUS: {status}"
+    return f"KEY: {prefix}{key}, KV: {version_id} [{is_latest}], KS: {key_size}, KD: {date}, N: {n_tot:n}, S: {s_tot}, STATUS: {status}"
 
 
 def get_kwargs_clients(args):
