@@ -24,6 +24,14 @@ def get_args():
     # common parser
     parser.add_argument("--region", help="Region", type=str)
     parser.add_argument("--profile", help="AWS Profile", type=str)
+    parser.add_argument(
+        "-w",
+        "--max-s3-workers",
+        help=f"Max S3 Workers to use [{MAX_S3_WORKERS}]",
+        type=int,
+        default=MAX_S3_WORKERS,
+    )
+    parser.add_argument("--stop-on-error", help="Stop on Action Error")
 
     # subparser
     subparsers = parser.add_subparsers(
@@ -63,14 +71,6 @@ def get_args():
         help="Act ONLY on DeleteMarkers",
         action="store_true",
     )
-    parent_parser.add_argument(
-        "-w",
-        "--max-s3-workers",
-        help=f"Max S3 Workers to use [{MAX_S3_WORKERS}]",
-        type=int,
-        default=MAX_S3_WORKERS,
-    )
-    parent_parser.add_argument("--stop-on-error", help="Stop on Action Error")
 
     # ls parser
     parser_ls = subparsers.add_parser(
