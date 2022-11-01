@@ -161,6 +161,9 @@ def get_kwargs_clients(args):
     if args.region:
         k_s3_ls["region_name"] = args.region
         k_s3_act_cfg["region_name"] = args.region
+    if args.profile:
+        k_s3_ls["profile_name"] = args.profile
+        k_s3_act_cfg["profile_name"] = args.profile
 
     k_s3_act_cfg["max_pool_connections"] = args.max_s3_workers
     if args.action == "cp" and args.dest_region:
