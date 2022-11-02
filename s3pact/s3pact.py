@@ -233,6 +233,7 @@ def reverse_versions(objs):
 def run():
     n_tot = s_tot = 0
     stop = False
+    print_out_key = False
 
     args = get_args()
 
@@ -262,7 +263,7 @@ def run():
         n_tot += 1
         s_tot += resp.get("ObjectSize", 0)
 
-        out = execute_s3_action(
+        out_key = execute_s3_action(
             args,
             kwargs_s3_action,
             s3_client_action,
@@ -276,14 +277,15 @@ def run():
                 "s_tot": s_tot,
             },
         )
-        if not args.version_id_marker:
-            print(out)
+
         if args.key_version or not args.versions:
+            print(out_key)
             return
 
         args.start_after = args.key
-        if args.versions and not args.version_id_marker:
+        if not args.version_id_marker:
             args.version_id_marker = resp.get("VersionId")
+            print_out_key = True
 
     kwargs_s3_ls = get_kwargs_ls(args)
 
@@ -340,6 +342,9 @@ def run():
                 else:
                     if s3_status:
                         print(s3_status)
+
+            if print_out_key:
+                print(out_key)
 
             if args.stop_on_error:
                 for future in future_to_stack:
