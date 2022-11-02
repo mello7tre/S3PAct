@@ -242,6 +242,7 @@ def run():
 
     kwargs_s3_action = get_kwargs_acts(args)
 
+    # Act only on a specific key 
     if args.key:
         if args.version_id_marker:
             # For a specific key show versions starting from marker
@@ -301,6 +302,7 @@ def run():
                     list_objs = reverse_versions(list_objs)
 
             for p in list_objs:
+                # Act only on a specific key 
                 if args.key and p.get("Key") != args.key:
                     stop = True
                     break
