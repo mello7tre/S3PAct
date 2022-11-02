@@ -242,42 +242,42 @@ def run():
 
     kwargs_s3_action = get_kwargs_acts(args)
 
-    if args.key and args.version_id_marker:
-        # For a specific key show versions starting from marker
-        args.start_after = args.key
-    elif args.key and args.versions and not args.key_version:
-        # For a specifi key show all versions including current
-        args.prefix = args.key
-    elif args.key:
-        # For specific key/version show it
-        kwargs_s3_get = {
-            "Bucket": args.bucket,
-            "Key": args.key,
-            "ObjectAttributes": ["ObjectSize"],
-        }
-        if args.key_version:
-            kwargs_s3_get["VersionId"] = args.key_version
+    if args.key:
+        if args.version_id_marker:
+            # For a specific key show versions starting from marker
+            args.start_after = args.key
+        elif args.versions and not args.key_version:
+            # For a specifi key show all versions including current
+            args.prefix = args.key
+        else:
+            # For specific key/version show it
+            kwargs_s3_get = {
+                "Bucket": args.bucket,
+                "Key": args.key,
+                "ObjectAttributes": ["ObjectSize"],
+            }
+            if args.key_version:
+                kwargs_s3_get["VersionId"] = args.key_version
 
-        s3_client_get = boto3.client("s3", **kwargs_s3_client_ls)
-        resp = s3_client_get.get_object_attributes(**kwargs_s3_get)
-
-        print(
-            execute_s3_action(
-                args,
-                kwargs_s3_action,
-                s3_client_action,
-                {
-                    "key": args.key,
-                    "version": resp.get("VersionId"),
-                    "size": resp.get("ObjectSize", 0),
-                    "latest": False if args.key_version else True,
-                    "date": resp.get("LastModified"),
-                    "n_tot": 1,
-                    "s_tot": resp.get("ObjectSize", 0),
-                },
+            s3_client_get = boto3.client("s3", **kwargs_s3_client_ls)
+            resp = s3_client_get.get_object_attributes(**kwargs_s3_get)
+            print(
+                execute_s3_action(
+                    args,
+                    kwargs_s3_action,
+                    s3_client_action,
+                    {
+                        "key": args.key,
+                        "version": resp.get("VersionId"),
+                        "size": resp.get("ObjectSize", 0),
+                        "latest": False if args.key_version else True,
+                        "date": resp.get("LastModified"),
+                        "n_tot": 1,
+                        "s_tot": resp.get("ObjectSize", 0),
+                    },
+                )
             )
-        )
-        return
+            return
 
     kwargs_s3_ls = get_kwargs_ls(args)
 
