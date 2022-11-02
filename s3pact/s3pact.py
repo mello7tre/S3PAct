@@ -236,7 +236,7 @@ def run():
 
     args = get_args()
 
-    if args.key_version:
+    if args.key and (args.key_version or args.version_id_marker):
         args.versions = True
     if args.skip_current_version and not args.versions:
         return
@@ -262,26 +262,27 @@ def run():
         n_tot += 1
         s_tot += resp.get("ObjectSize", 0)
 
-        print(
-            execute_s3_action(
-                args,
-                kwargs_s3_action,
-                s3_client_action,
-                {
-                    "key": args.key,
-                    "version": resp.get("VersionId"),
-                    "size": resp.get("ObjectSize", 0),
-                    "latest": False if args.key_version else True,
-                    "date": resp.get("LastModified"),
-                    "n_tot": n_tot,
-                    "s_tot": s_tot,
-                },
-            )
+        out = execute_s3_action(
+            args,
+            kwargs_s3_action,
+            s3_client_action,
+            {
+                "key": args.key,
+                "version": resp.get("VersionId"),
+                "size": resp.get("ObjectSize", 0),
+                "latest": False if args.key_version else True,
+                "date": resp.get("LastModified"),
+                "n_tot": n_tot,
+                "s_tot": s_tot,
+            },
         )
+        if not args.version_id_marker:
+            print(out)
         if args.key_version or not args.versions:
             return
-        elif args.versions:
-            args.start_after = args.key
+
+        args.start_after = args.key
+        if args.versions and not args.version_id_marker:
             args.version_id_marker = resp.get("VersionId")
 
     kwargs_s3_ls = get_kwargs_ls(args)
