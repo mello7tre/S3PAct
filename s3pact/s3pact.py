@@ -17,11 +17,11 @@ MAX_S3_WORKERS = 20
 
 def get_args():
     description = "S3 Parallel Action\n\n"
-    description += "Output:\n Key, Key Version, Key Size, Key Date, Is Latest/Current, Number of returned objects, Size of returned objects, Status"
+    description += "Output:\n Key, Key Version, Key Size, Key Date, Is Latest/Current, Number of returned objects, Size of returned objects, Action Status"
     parser = argparse.ArgumentParser(
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="Note: rm action using versions option remove specific object version and do NOT create delete marker!",
+        epilog="Warning Note: rm 'action' using 'versions' option remove specific object version/s and DO NOT CREATE DELETE MARKER!!!",
     )
 
     # common parser
