@@ -348,6 +348,7 @@ def run():
                         print(s3_status)
 
             if act_on_key_data:
+                # For acting on all versions of a specific key with right order (current version at end)
                 act_on_key_data["n_tot"] = n_tot + 1
                 act_on_key_data["s_tot"] = s_tot + act_on_key_data["size"]
                 print(
