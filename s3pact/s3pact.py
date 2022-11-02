@@ -251,7 +251,7 @@ def run():
             # For a specifi key show all versions including current
             args.prefix = args.key
         else:
-            # For specific key/version show it
+            # For specific key/version show it and quit
             kwargs_s3_get = {
                 "Bucket": args.bucket,
                 "Key": args.key,
