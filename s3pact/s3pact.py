@@ -62,17 +62,16 @@ def get_args():
     parent_parser.add_argument("-b", "--bucket", help="Bucket", required=True)
     parent_parser.add_argument("--dry", help="Dry Run", action="store_true")
     parent_parser.add_argument(
-        "--versions", help="Act on Non-Current Versions", action="store_true"
-    )
-    parent_parser.add_argument(
         "--skip-current-version",
         help="Do not act on Current Version",
         action="store_true",
     )
-    parent_parser.add_argument(
-        "--delete-marker",
-        help="Act ONLY on DeleteMarkers",
-        action="store_true",
+    vm_group = parent_parser.add_mutually_exclusive_group()
+    vm_group.add_argument(
+        "--delete-marker", help="Act ONLY on DeleteMarkers", action="store_true"
+    )
+    vm_group.add_argument(
+        "--versions", help="Act on Non-Current Versions", action="store_true"
     )
 
     # ls parser
