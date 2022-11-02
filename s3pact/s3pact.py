@@ -225,6 +225,35 @@ def reverse_versions(objs):
     return resp + list_versions
 
 
+def act_on_key(args, kwargs_s3_client_ls, kwargs_s3_action, s3_client_action):
+    kwargs_s3_get = {
+        "Bucket": args.bucket,
+        "Key": args.key,
+        "ObjectAttributes": ["ObjectSize"],
+    }
+    if args.key_version:
+        kwargs_s3_get["VersionId"] = args.key_version
+
+    s3_client_get = boto3.client("s3", **kwargs_s3_client_ls)
+    resp = s3_client_get.get_object_attributes(**kwargs_s3_get)
+    print(
+        execute_s3_action(
+            args,
+            kwargs_s3_action,
+            s3_client_action,
+            {
+                "key": args.key,
+                "version": resp.get("VersionId"),
+                "size": resp.get("ObjectSize", 0),
+                "latest": False if args.key_version else True,
+                "date": resp.get("LastModified"),
+                "n_tot": 1,
+                "s_tot": resp.get("ObjectSize", 0),
+            },
+        )
+    )
+
+
 def run():
     n_tot = s_tot = 0
     stop = False
@@ -252,32 +281,7 @@ def run():
             args.prefix = args.key
         else:
             # For specific key/version show it and quit
-            kwargs_s3_get = {
-                "Bucket": args.bucket,
-                "Key": args.key,
-                "ObjectAttributes": ["ObjectSize"],
-            }
-            if args.key_version:
-                kwargs_s3_get["VersionId"] = args.key_version
-
-            s3_client_get = boto3.client("s3", **kwargs_s3_client_ls)
-            resp = s3_client_get.get_object_attributes(**kwargs_s3_get)
-            print(
-                execute_s3_action(
-                    args,
-                    kwargs_s3_action,
-                    s3_client_action,
-                    {
-                        "key": args.key,
-                        "version": resp.get("VersionId"),
-                        "size": resp.get("ObjectSize", 0),
-                        "latest": False if args.key_version else True,
-                        "date": resp.get("LastModified"),
-                        "n_tot": 1,
-                        "s_tot": resp.get("ObjectSize", 0),
-                    },
-                )
-            )
+            act_on_key(args, kwargs_s3_client_ls, kwargs_s3_action, s3_client_action)
             return
 
     kwargs_s3_ls = get_kwargs_ls(args)
