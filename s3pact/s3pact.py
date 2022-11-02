@@ -233,7 +233,7 @@ def reverse_versions(objs):
 def run():
     n_tot = s_tot = 0
     stop = False
-    print_out_key = False
+    act_on_key_data = {}
 
     args = get_args()
 
@@ -249,7 +249,11 @@ def run():
     kwargs_s3_action = get_kwargs_acts(args)
 
     # For specific key/version
-    if args.key:
+    if args.key and args.version_id_marker:
+        # If for a specific key want to start from a specific version using args.version_id_marker,
+        # simply use the key as marker for start_after
+        args.start_after = args.key
+    elif args.key:
         kwargs_s3_get = {
             "Bucket": args.bucket,
             "Key": args.key,
@@ -260,32 +264,32 @@ def run():
 
         s3_client_get = boto3.client("s3", **kwargs_s3_client_ls)
         resp = s3_client_get.get_object_attributes(**kwargs_s3_get)
-        n_tot += 1
-        s_tot += resp.get("ObjectSize", 0)
 
-        out_key = execute_s3_action(
-            args,
-            kwargs_s3_action,
-            s3_client_action,
-            {
-                "key": args.key,
-                "version": resp.get("VersionId"),
-                "size": resp.get("ObjectSize", 0),
-                "latest": False if args.key_version else True,
-                "date": resp.get("LastModified"),
-                "n_tot": n_tot,
-                "s_tot": s_tot,
-            },
-        )
+        act_on_key_data = {
+            "key": args.key,
+            "version": resp.get("VersionId"),
+            "size": resp.get("ObjectSize", 0),
+            "latest": False if args.key_version else True,
+            "date": resp.get("LastModified"),
+        }
 
         if args.key_version or not args.versions:
-            print(out_key)
+            # Specific key with optionally specific version
+            act_on_key_data["n_tot"] = 1
+            act_on_key_data["s_tot"] = resp.get("ObjectSize", 0)
+            print(
+                execute_s3_action(
+                    args,
+                    kwargs_s3_action,
+                    s3_client_action,
+                    act_on_key_data,
+                )
+            )
             return
 
+        # For acting on all versions of a specific key with right order (current version at end)
         args.start_after = args.key
-        if not args.version_id_marker:
-            args.version_id_marker = resp.get("VersionId")
-            print_out_key = True
+        args.version_id_marker = resp.get("VersionId")
 
     kwargs_s3_ls = get_kwargs_ls(args)
 
@@ -343,8 +347,17 @@ def run():
                     if s3_status:
                         print(s3_status)
 
-            if print_out_key:
-                print(out_key)
+            if act_on_key_data:
+                act_on_key_data["n_tot"] = n_tot + 1
+                act_on_key_data["s_tot"] = s_tot + act_on_key_data["size"]
+                print(
+                    execute_s3_action(
+                        args,
+                        kwargs_s3_action,
+                        s3_client_action,
+                        act_on_key_data,
+                    )
+                )
 
             if args.stop_on_error:
                 for future in future_to_stack:
