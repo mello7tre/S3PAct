@@ -189,27 +189,25 @@ def get_kwargs_clients(args):
     return k_s3_ls, k_s3_act
 
 
-def get_kwargs_acts(args):
-    k_ls = {}
-    k_act = {}
-
-    k_ls["Bucket"] = args.bucket
-    k_act["Bucket"] = args.bucket
-
+def get_kwargs_ls(args):
+    k = {"Bucket": args.bucket}
     if args.prefix:
-        k_ls["Prefix"] = args.prefix
+        k["Prefix"] = args.prefix
     if args.start_after:
-        k_ls["KeyMarker"] = args.start_after
+        k["KeyMarker"] = args.start_after
         if args.version_id_marker:
-            k_ls["VersionIdMarker"] = args.version_id_marker
+            k["VersionIdMarker"] = args.version_id_marker
+    return k
 
+
+def get_kwargs_acts(args):
+    k = {"Bucket": args.bucket}
     if args.action == "cp":
-        k_act["Bucket"] = args.dest_bucket
-        k_act["CopySource"] = {
+        k["Bucket"] = args.dest_bucket
+        k["CopySource"] = {
             "Bucket": args.bucket,
         }
-
-    return k_ls, k_act
+    return k
 
 
 def reverse_versions(objs):
@@ -244,10 +242,10 @@ def run():
         return
 
     kwargs_s3_client_ls, kwargs_s3_client_action = get_kwargs_clients(args)
-    kwargs_s3_ls, kwargs_s3_action = get_kwargs_acts(args)
-
     s3_client_ls = boto3.client("s3", **kwargs_s3_client_ls)
     s3_client_action = boto3.client("s3", **kwargs_s3_client_action)
+
+    kwargs_s3_action = get_kwargs_acts(args)
 
     # For specific key/version
     if args.key:
@@ -286,8 +284,7 @@ def run():
             args.start_after = args.key
             args.version_id_marker = resp.get("VersionId")
 
-            kwargs_s3_ls, kwargs_s3_action = get_kwargs_acts(args)
-            s3_client_ls = boto3.client("s3", **kwargs_s3_client_ls)
+    kwargs_s3_ls = get_kwargs_ls(args)
 
     paginator = s3_client_ls.get_paginator("list_object_versions")
     response_iterator = paginator.paginate(**kwargs_s3_ls)
@@ -309,6 +306,9 @@ def run():
                     list_objs = reverse_versions(list_objs)
 
             for p in list_objs:
+                if args.key and p.get("Key") != args.key:
+                    stop = True
+                    break
                 n_tot += 1
                 s_tot += p.get("Size", 0)
                 s3_key_data = {
@@ -330,9 +330,6 @@ def run():
                 )
                 future_to_stack[ex_sub] = s3_key_data["key"]
 
-                if args.key and p.get("Key") != args.key:
-                    break
-
             for future in future_to_stack:
                 obj = future_to_stack[future]
                 try:
@@ -341,11 +338,9 @@ def run():
                     break
                 else:
                     if s3_status:
-                        if args.key and s3_status["KEY"] != args.key:
-                            break
                         print(s3_status)
 
-            if args.stop_on_error or stop:
+            if args.stop_on_error:
                 for future in future_to_stack:
                     future.cancel()
 
