@@ -150,7 +150,6 @@ def execute_s3_action(args, kwargs, client, data):
                 kwargs["CopySource"]["VersionId"] = version_id
             resp = client.copy_object(**kwargs)
 
-        # print(kwargs)
     except Exception as e:
         status = f"ERROR [{e}]"
     else:
@@ -166,7 +165,6 @@ def execute_s3_action(args, kwargs, client, data):
         "S": s_tot,
         "STATUS": status,
     }
-    # return f"KEY: {prefix}{key}; KV: {version_id} [{is_latest}]; KS: {key_size}; KD: {date}; N: {n_tot:n}; S: {s_tot}; STATUS: {status}"
 
 
 def get_kwargs_clients(args):
