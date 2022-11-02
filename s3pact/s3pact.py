@@ -128,13 +128,6 @@ def execute_s3_action(args, kwargs, client, data):
     else:
         prefix = ""
 
-    if args.skip_current_version and data["latest"]:
-        # skip current
-        return
-    if not args.versions and not data["latest"]:
-        # skip versions
-        return
-
     try:
         if args.dry or args.action == "ls":
             pass
@@ -314,6 +307,14 @@ def run():
                 if args.key and p.get("Key") != args.key:
                     stop = True
                     break
+
+                if args.skip_current_version and p.get("IsLatest"):
+                    # skip current
+                    continue
+                if not args.versions and not p.get("IsLatest"):
+                    # skip versions
+                    continue
+
                 n_tot += 1
                 s_tot += p.get("Size", 0)
                 s3_key_data = {
