@@ -127,11 +127,6 @@ def execute_s3_action(args, kwargs, client, data):
     s_tot = human_readable_size(data["s_tot"])
     key_size = human_readable_size(data["size"])
 
-    if args.action == "cp" and args.dest_prefix:
-        prefix = args.dest_prefix
-    else:
-        prefix = ""
-
     try:
         if args.dry or args.action == "ls":
             pass
@@ -141,8 +136,11 @@ def execute_s3_action(args, kwargs, client, data):
                 kwargs["VersionId"] = version_id
             resp = client.delete_object(**kwargs)
         elif args.action == "cp":
+            src_key = key
+            if args.dest_prefix:
+                key = f"{args.dest_prefix}{key}"
             kwargs["Key"] = key
-            kwargs["CopySource"]["Key"] = key
+            kwargs["CopySource"]["Key"] = src_key
             if args.versions:
                 kwargs["CopySource"]["VersionId"] = version_id
             resp = client.copy_object(**kwargs)
@@ -153,7 +151,7 @@ def execute_s3_action(args, kwargs, client, data):
         status = "OK [DRY]" if args.dry else "OK"
 
     return {
-        "KEY": f"{prefix}{key}",
+        "KEY": key,
         "KV": version_id,
         "KS": key_size,
         "KD": f"{date}",
