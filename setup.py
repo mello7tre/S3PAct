@@ -10,5 +10,5 @@ setuptools.setup(
     scripts=[
         's3pact/s3pact.py',
     ],
-    version = "0.0.8"
+    version = "0.0.9"
 )
