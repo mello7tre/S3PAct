@@ -4,6 +4,7 @@ import botocore
 import logging
 import argparse
 import locale
+import os
 import concurrent.futures
 
 logging.basicConfig()
@@ -107,6 +108,19 @@ def get_args():
     )
     parser_cp.add_argument("--dest-region", help="Destination Region")
 
+    # dl parser
+    parser_dl = subparsers.add_parser(
+        "dl",
+        parents=[parent_parser],
+        help="Download Key from Bucket to local dir",
+    )
+    parser_dl.add_argument(
+        "-d",
+        "--directory",
+        help="directory where to download files",
+        default=os.getcwd(),
+    )
+
     args = parser.parse_args()
     return args
 
@@ -144,6 +158,12 @@ def execute_s3_action(args, kwargs, client, data):
             if args.versions:
                 kwargs["CopySource"]["VersionId"] = version_id
             resp = client.copy_object(**kwargs)
+        elif args.action == "dl":
+            kwargs["Key"] = key
+            os.makedirs(os.path.dirname(f"{args.directory}/{key}"), exist_ok=True)
+            with open(f"{args.directory}/{key}", "wb") as data:
+                kwargs["Fileobj"] = data
+                resp = client.download_fileobj(**kwargs)
 
     except Exception as e:
         status = f"ERROR [{e}]"
