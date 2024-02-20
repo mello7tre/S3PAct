@@ -161,8 +161,8 @@ def execute_s3_action(args, kwargs, client, data):
         elif args.action == "dl":
             kwargs["Key"] = key
             os.makedirs(os.path.dirname(f"{args.directory}/{key}"), exist_ok=True)
-            with open(f"{args.directory}/{key}", "wb") as data:
-                kwargs["Fileobj"] = data
+            with open(f"{args.directory}/{key}", "wb") as s3_key_data:
+                kwargs["Fileobj"] = s3_key_data
                 resp = client.download_fileobj(**kwargs)
 
     except Exception as e:
@@ -362,6 +362,7 @@ def run():
                 try:
                     s3_status = future.result()
                 except Exception as e:
+                    logger.error(f"Found error stopping: {e}")
                     break
                 else:
                     if s3_status:
