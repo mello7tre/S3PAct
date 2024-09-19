@@ -167,7 +167,7 @@ def execute_s3_action(args, kwargs, client, data):
             resp = client.delete_object(**kwargs)
         elif args.action == "tag":
             kwargs["Key"] = key
-            kawrgs["Tagging"] = {
+            kwargs["Tagging"] = {
                 "TagSet": [
                     {
                         "Key": args.tag_name,
