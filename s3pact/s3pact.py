@@ -94,6 +94,19 @@ def get_args():
         help="Remove s3 keys, optionally versions and delete marker",
     )
 
+    # tag parser
+    parser_tag = subparsers.add_parser(
+        "tag",
+        parents=[parent_parser],
+        help="Tag s3 keys, optionally versions and delete marker",
+    )
+    parser_tag.add_argument(
+        "--tag-name", help="Tag Name", required=True
+    )
+    parser_tag.add_argument(
+        "--tag-value", help="Tag Value", required=True
+    )
+
     # cp parser
     parser_cp = subparsers.add_parser(
         "cp",
@@ -152,6 +165,19 @@ def execute_s3_action(args, kwargs, client, data):
             if args.versions:
                 kwargs["VersionId"] = version_id
             resp = client.delete_object(**kwargs)
+        elif args.action == "tag":
+            kwargs["Key"] = key
+            kawrgs["Tagging"] = {
+                "TagSet": [
+                    {
+                        "Key": args.tag_name,
+                        "Value": args.tag_value,
+                    }
+                ]
+            }
+            if args.versions:
+                kwargs["VersionId"] = version_id
+            resp = client.put_object_tagging(**kwargs)
         elif args.action == "cp":
             kwargs["Key"] = key
             kwargs["CopySource"]["Key"] = src_key
