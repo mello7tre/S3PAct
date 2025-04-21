@@ -163,10 +163,7 @@ def get_args():
         default="STANDARD",
     )
     parser_ul.add_argument(
-        "-d", "--dest-bucket", help="Destination Bucket", required=True
-    )
-    parser_ul.add_argument(
-        "--dest-prefix", help="put files under this prefix on destination Bucket"
+        "-d", "--dest-prefix", help="put files under this prefix on destination Bucket"
     )
 
     args = parser.parse_args()
@@ -190,8 +187,10 @@ def execute_s3_action(args, kwargs, client, data):
     key_size = human_readable_size(data["size"])
 
     if args.action in ["cp", "ul"] and args.dest_prefix:
-        key = f"{args.dest_prefix}{key}"
-
+        key = os.path.join(args.dest_prefix, key.lstrip("/"))
+        if args.action == "ul" and key != args.source:
+            # strip full path prefix "before" args.source
+            key = key.replace(os.path.split(args.source)[0], "")
     try:
         if args.dry or args.action == "ls":
             pass
@@ -228,11 +227,9 @@ def execute_s3_action(args, kwargs, client, data):
         elif args.action == "ul":
             kwargs["Key"] = key
             kwargs["ExtraArgs"] = {"StorageClass": args.storage_class}
-            key = key.replace(args.source, "")
-            with open(src_key, "r") as f:
+            with open(src_key, "rb") as f:
                 kwargs["Fileobj"] = f
-                print(kwargs)
-                # client.upload_fileobj(**kwargs)
+                client.upload_fileobj(**kwargs)
 
     except Exception as e:
         status = f"ERROR [{e}]"
