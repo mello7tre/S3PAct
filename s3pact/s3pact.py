@@ -188,9 +188,10 @@ def execute_s3_action(args, kwargs, client, data):
 
     if args.action in ["cp", "ul"] and args.dest_prefix:
         key = os.path.join(args.dest_prefix, key.lstrip("/"))
-        if args.action == "ul" and key != args.source:
-            # strip full path prefix "before" args.source
-            key = key.replace(os.path.split(args.source)[0], "")
+    if args.action == "ul":
+        # strip full path prefix "before" args.source
+        key = key.replace(os.path.split(args.source)[0], "").lstrip("/")
+
     try:
         if args.dry or args.action == "ls":
             pass
