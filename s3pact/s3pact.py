@@ -81,14 +81,14 @@ def get_args():
     )
 
     # ls parser
-    parser_ls = subparsers.add_parser(
+    subparsers.add_parser(
         "ls",
         parents=[parent_parser],
         help="List s3 keys versions and optionally DeleteMarker",
     )
 
     # rm parser
-    parser_rm = subparsers.add_parser(
+    subparsers.add_parser(
         "rm",
         parents=[parent_parser],
         help="Remove s3 keys, optionally versions and delete marker",
@@ -100,12 +100,8 @@ def get_args():
         parents=[parent_parser],
         help="Tag s3 keys, optionally versions and delete marker",
     )
-    parser_tag.add_argument(
-        "--tag-name", help="Tag Name", required=True
-    )
-    parser_tag.add_argument(
-        "--tag-value", help="Tag Value", required=True
-    )
+    parser_tag.add_argument("--tag-name", help="Tag Name", required=True)
+    parser_tag.add_argument("--tag-value", help="Tag Value", required=True)
 
     # cp parser
     parser_cp = subparsers.add_parser(
@@ -121,7 +117,7 @@ def get_args():
     )
     parser_cp.add_argument("--dest-region", help="Destination Region")
 
-    # dl parser
+    # download parser
     parser_dl = subparsers.add_parser(
         "dl",
         parents=[parent_parser],
@@ -132,6 +128,45 @@ def get_args():
         "--directory",
         help="directory where to download files",
         default=os.getcwd(),
+    )
+
+    # upload parser
+    parser_ul = subparsers.add_parser(
+        "ul",
+        parents=[parent_parser],
+        help="Upload file/dir to S3 Bucket",
+    )
+    parser_ul.add_argument(
+        "-s",
+        "--source",
+        required=True,
+        help="Source file/dir to upload",
+        default=os.getcwd(),
+    )
+    parser_ul.add_argument(
+        "-c",
+        "--storage-class",
+        help="Storage class",
+        choices=[
+            "STANDARD",
+            "REDUCED_REDUNDANCY",
+            "STANDARD_IA",
+            "ONEZONE_IA",
+            "INTELLIGENT_TIERING",
+            "GLACIER",
+            "DEEP_ARCHIVE",
+            "OUTPOSTS",
+            "GLACIER_IR",
+            "SNOW",
+            "EXPRESS_ONEZONE",
+        ],
+        default="STANDARD",
+    )
+    parser_ul.add_argument(
+        "-d", "--dest-bucket", help="Destination Bucket", required=True
+    )
+    parser_ul.add_argument(
+        "--dest-prefix", help="put files under this prefix on destination Bucket"
     )
 
     args = parser.parse_args()
@@ -154,7 +189,7 @@ def execute_s3_action(args, kwargs, client, data):
     s_tot = human_readable_size(data["s_tot"])
     key_size = human_readable_size(data["size"])
 
-    if args.action == "cp" and args.dest_prefix:
+    if args.action in ["cp", "ul"] and args.dest_prefix:
         key = f"{args.dest_prefix}{key}"
 
     try:
@@ -164,7 +199,7 @@ def execute_s3_action(args, kwargs, client, data):
             kwargs["Key"] = key
             if args.versions:
                 kwargs["VersionId"] = version_id
-            resp = client.delete_object(**kwargs)
+            client.delete_object(**kwargs)
         elif args.action == "tag":
             kwargs["Key"] = key
             kwargs["Tagging"] = {
@@ -177,19 +212,27 @@ def execute_s3_action(args, kwargs, client, data):
             }
             if args.versions:
                 kwargs["VersionId"] = version_id
-            resp = client.put_object_tagging(**kwargs)
+            client.put_object_tagging(**kwargs)
         elif args.action == "cp":
             kwargs["Key"] = key
             kwargs["CopySource"]["Key"] = src_key
             if args.versions:
                 kwargs["CopySource"]["VersionId"] = version_id
-            resp = client.copy_object(**kwargs)
+            client.copy_object(**kwargs)
         elif args.action == "dl":
             kwargs["Key"] = key
             os.makedirs(os.path.dirname(f"{args.directory}/{key}"), exist_ok=True)
             with open(f"{args.directory}/{key}", "wb") as s3_key_data:
                 kwargs["Fileobj"] = s3_key_data
-                resp = client.download_fileobj(**kwargs)
+                client.download_fileobj(**kwargs)
+        elif args.action == "ul":
+            kwargs["Key"] = key
+            kwargs["ExtraArgs"] = {"StorageClass": args.storage_class}
+            key = key.replace(args.source, "")
+            with open(src_key, "r") as f:
+                kwargs["Fileobj"] = f
+                print(kwargs)
+                # client.upload_fileobj(**kwargs)
 
     except Exception as e:
         status = f"ERROR [{e}]"
@@ -328,10 +371,40 @@ def run():
             act_on_key(args, kwargs_s3_client_ls, kwargs_s3_action, s3_client_action)
             return
 
-    kwargs_s3_ls = get_kwargs_ls(args)
+    if args.action == "ul":
+        # upload action, simulate a structure like the one returned by list_object_versions
+        if os.path.isfile(args.source):
+            f_stat = os.stat(args.source)
+            response_iterator = [
+                {
+                    "Versions": [
+                        {"Key": args.source, "IsLatest": True, "Size": f_stat.st_size}
+                    ]
+                }
+            ]
+        elif os.path.isdir(args.source):
+            response_iterator = []
+            for root, _, filenames in os.walk(args.source, topdown=True):
+                for name in filenames:
+                    f_path = os.path.join(root, name)
+                    f_stat = os.stat(f_path)
+                    response_iterator.append(
+                        {
+                            "Versions": [
+                                {
+                                    "Key": os.path.join(root, name),
+                                    "IsLatest": True,
+                                    "Size": f_stat.st_size,
+                                }
+                            ]
+                        }
+                    )
 
-    paginator = s3_client_ls.get_paginator("list_object_versions")
-    response_iterator = paginator.paginate(**kwargs_s3_ls)
+    else:
+        kwargs_s3_ls = get_kwargs_ls(args)
+
+        paginator = s3_client_ls.get_paginator("list_object_versions")
+        response_iterator = paginator.paginate(**kwargs_s3_ls)
 
     for r in response_iterator:
         if stop:
@@ -384,7 +457,7 @@ def run():
                 future_to_stack[ex_sub] = s3_key_data["key"]
 
             for future in future_to_stack:
-                obj = future_to_stack[future]
+                future_to_stack[future]
                 try:
                     s3_status = future.result()
                 except Exception as e:
