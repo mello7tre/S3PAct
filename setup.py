@@ -6,7 +6,7 @@ setuptools.setup(
     install_requires=[
         'boto3',
     ],
-    python_requires='>=3.7',
+    python_requires='>=3.9',
     scripts=[
         's3pact/s3pact.py',
     ],

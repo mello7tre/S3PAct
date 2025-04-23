@@ -187,10 +187,11 @@ def execute_s3_action(args, kwargs, client, data):
     key_size = human_readable_size(data["size"])
 
     if args.action in ["cp", "ul"] and args.dest_prefix:
-        key = os.path.join(args.dest_prefix, key.lstrip("/"))
+        # append prefix
+        key = f"{args.dest_prefix}{key}"
     if args.action == "ul":
-        # strip full path prefix "before" args.source
-        key = key.replace(os.path.split(args.source)[0], "").lstrip("/")
+        # strip full path prefix "before" last dir of args.source
+        key = key.replace(f"{os.path.dirname(args.source)}/", "")
 
     try:
         if args.dry or args.action == "ls":
