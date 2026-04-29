@@ -398,20 +398,17 @@ def main():
                 }
             ]
         elif os.path.isdir(args.source):
-            response_iterator = []
+            versions = []
+            response_iterator = [{"Versions": versions}]
             for root, _, filenames in os.walk(args.source, topdown=True):
                 for name in filenames:
                     f_path = os.path.join(root, name)
                     f_stat = os.stat(f_path)
-                    response_iterator.append(
+                    versions.append(
                         {
-                            "Versions": [
-                                {
-                                    "Key": os.path.join(root, name),
-                                    "IsLatest": True,
-                                    "Size": f_stat.st_size,
-                                }
-                            ]
+                            "Key": os.path.join(root, name),
+                            "IsLatest": True,
+                            "Size": f_stat.st_size,
                         }
                     )
 
