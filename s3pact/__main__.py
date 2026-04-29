@@ -469,15 +469,18 @@ def main():
                 future_to_stack[ex_sub] = s3_key_data["key"]
 
             for future in future_to_stack:
-                future_to_stack[future]
+                s3_key_name = future_to_stack[future]
                 try:
-                    s3_status = future.result()
+                    s3_status = future.result()["STATUS"]
+                    if "ERROR" in s3_status and args.stop_on_error:
+                        logger.error(f"Key: {s3_key_name} - Error: {s3_status}")
+                        break
                 except Exception as e:
                     logger.error(f"Found error stopping: {e}")
                     break
                 else:
                     if s3_status:
-                        if "ERROR" in s3_status["STATUS"] or not args.only_show_errors:
+                        if "ERROR" in s3_status or not args.only_show_errors:
                             print(s3_status)
 
             if args.stop_on_error:
