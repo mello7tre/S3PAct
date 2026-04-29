@@ -100,8 +100,8 @@ def get_args():
         parents=[parent_parser],
         help="Tag s3 keys, optionally versions and delete marker",
     )
-    parser_tag.add_argument("--tag-name", help="Tag Name", required=True)
-    parser_tag.add_argument("--tag-value", help="Tag Value", required=True)
+    parser_tag.add_argument("--tag-names", help="Tag Names", nargs="+", required=True)
+    parser_tag.add_argument("--tag-values", help="Tag Values", nargs="+", required=True)
 
     # cp parser
     parser_cp = subparsers.add_parser(
@@ -206,9 +206,10 @@ def execute_s3_action(args, kwargs, client, data):
             kwargs["Tagging"] = {
                 "TagSet": [
                     {
-                        "Key": args.tag_name,
-                        "Value": args.tag_value,
+                        "Key": args.tag_names[n],
+                        "Value": args.tag_values[n],
                     }
+                    for n, _ in enumerate(args.tag_names)
                 ]
             }
             if args.versions:
