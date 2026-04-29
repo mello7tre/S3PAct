@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "s3pact"
+description = "S3 Parallel ACtion"
+readme = "README.md"
+authors = [
+    { name = "Mello", email = "mello+python@ankot.org" }
+]
+license = { text = "OSI Approved :: Open Software License 3.0 (OSL-3.0)" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent"
+]
+requires-python = ">=3.9"
+dependencies = [
+    "boto3",
+]
+version = "0.1.5"
+
+[project.urls]
+Homepage = "https://github.com/mello7tre/S3PAct"
+
+[project.scripts]
+s3pact = "s3pact.__main__:main"
+
+[tool.setuptools]
+packages = ["s3pact"]

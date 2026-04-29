@@ -5,6 +5,7 @@ import logging
 import argparse
 import locale
 import os
+import sys
 import concurrent.futures
 
 logging.basicConfig()
@@ -165,6 +166,8 @@ def get_args():
     parser_ul.add_argument(
         "-d", "--dest-prefix", help="put files under this prefix on destination Bucket"
     )
+    parser_ul.add_argument("--tag-names", help="Tag Names", nargs="+")
+    parser_ul.add_argument("--tag-values", help="Tag Values", nargs="+")
 
     args = parser.parse_args()
     return args
@@ -229,10 +232,17 @@ def execute_s3_action(args, kwargs, client, data):
                 client.download_fileobj(**kwargs)
         elif args.action == "ul":
             kwargs["Key"] = key
-            kwargs["ExtraArgs"] = {"StorageClass": args.storage_class}
+            kwargs["StorageClass"] = args.storage_class
+            if args.tag_names:
+                kwargs["Tagging"] = "&".join(
+                    [
+                        f"{args.tag_names[n]}={args.tag_values[n]}"
+                        for n, _ in enumerate(args.tag_names)
+                    ]
+                )
             with open(src_key, "rb") as f:
-                kwargs["Fileobj"] = f
-                client.upload_fileobj(**kwargs)
+                kwargs["Body"] = f
+                client.put_object(**kwargs)
 
     except Exception as e:
         status = f"ERROR [{e}]"
@@ -341,7 +351,7 @@ def act_on_key(args, kwargs_s3_client_ls, kwargs_s3_action, s3_client_action):
     )
 
 
-def run():
+def main():
     n_tot = s_tot = 0
     stop = False
 
@@ -472,5 +482,6 @@ def run():
                     future.cancel()
 
 
+# Optional: allow running directly for debugging
 if __name__ == "__main__":
-    run()
+    sys.exit(main())

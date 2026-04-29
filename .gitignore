@@ -3,3 +3,5 @@ s3prm.py
 *.swp
 dist
 build
+*.egg-info/
+*.egg
