@@ -18,7 +18,7 @@ requires-python = ">=3.9"
 dependencies = [
     "boto3",
 ]
-version = "1.0.1"
+version = "1.0.2"
 
 [project.urls]
 Homepage = "https://github.com/mello7tre/S3PAct"
