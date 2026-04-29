@@ -36,7 +36,12 @@ def get_args():
         type=int,
         default=MAX_S3_WORKERS,
     )
-    parser.add_argument("--stop-on-error", help="Stop on Action Error")
+    parser.add_argument(
+        "--stop-on-error", help="Stop on Action Error", action="store_true"
+    )
+    parser.add_argument(
+        "--only-show-errors", help="Show only errors", action="store_true"
+    )
 
     # subparser
     subparsers = parser.add_subparsers(
@@ -475,7 +480,8 @@ def main():
                     break
                 else:
                     if s3_status:
-                        print(s3_status)
+                        if "ERROR" in s3_status["STATUS"] or not args.only_show_errors:
+                            print(s3_status)
 
             if args.stop_on_error:
                 for future in future_to_stack:
