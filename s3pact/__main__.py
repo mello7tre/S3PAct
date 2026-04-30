@@ -462,7 +462,7 @@ def main():
                 ex_sub = executor.submit(
                     execute_s3_action,
                     args,
-                    kwargs_s3_action,
+                    dict(kwargs_s3_action),
                     s3_client_action,
                     s3_key_data,
                 )
