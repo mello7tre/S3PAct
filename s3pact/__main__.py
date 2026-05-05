@@ -255,7 +255,7 @@ def execute_s3_action(args, kwargs, client, data):
     else:
         if kwargs["Key"] != key:
             status = "ERROR"
-            err_msg = f"kwargs key mismatch <=> {kwargs['Key']}"
+            err_msg = f"Key mismatch <=> {kwargs['Key']}"
         else:
             status = "OK"
             err_msg = ""
