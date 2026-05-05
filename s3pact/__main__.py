@@ -199,7 +199,7 @@ def execute_s3_action(args, kwargs, client, data):
         key = f"{args.dest_prefix}{key}"
     if args.action == "ul":
         # strip full path prefix "before" last dir of args.source
-        key = key.replace(f"{os.path.dirname(args.source)}/", "")
+        key = key.replace(f"{os.path.dirname(args.source)}/", "", 1)
 
     try:
         if args.dry or args.action == "ls":
