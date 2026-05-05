@@ -250,9 +250,15 @@ def execute_s3_action(args, kwargs, client, data):
                 client.put_object(**kwargs)
 
     except Exception as e:
-        status = f"ERROR [{e}]"
+        status = "ERROR"
+        err_msg = e
     else:
-        status = "OK [DRY]" if args.dry else "OK"
+        if kwargs["Key"] != key:
+            status = "ERROR"
+            err_msg = f"kwargs key mismatch <=> {kwargs['Key']}"
+        else:
+            status = "OK"
+            err_msg = ""
 
     return {
         "KEY": key,
@@ -263,6 +269,8 @@ def execute_s3_action(args, kwargs, client, data):
         "N": f"{n_tot:n}",
         "S": s_tot,
         "STATUS": status,
+        "ERR": err_msg,
+        "DRY": args.dry,
     }
 
 
@@ -473,16 +481,16 @@ def main():
                 try:
                     s3_action_return = future.result()
                     s3_action_status = s3_action_return["STATUS"]
-                    if "ERROR" in s3_action_status and args.stop_on_error:
-                        logger.error(f"Key: {s3_key_name} - Error: {s3_action_status}")
+                    s3_action_err = s3_action_return["ERR"]
+                    if s3_action_status == "ERROR" and args.stop_on_error:
+                        logger.error(f"Key: {s3_key_name} - Error: {s3_action_err}")
                         break
                 except Exception as e:
                     logger.error(f"Found error stopping: {e}")
                     break
                 else:
-                    if s3_action_return:
-                        if "ERROR" in s3_action_status or not args.only_show_errors:
-                            print(s3_action_return)
+                    if s3_action_status == "ERROR" or not args.only_show_errors:
+                        print(s3_action_return)
 
             if args.stop_on_error:
                 for future in future_to_stack:
