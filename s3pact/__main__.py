@@ -202,15 +202,15 @@ def execute_s3_action(args, kwargs, client, data):
         key = key.replace(f"{os.path.dirname(args.source)}/", "", 1)
 
     try:
+        kwargs["Key"] = key
+
         if args.dry or args.action == "ls":
             pass
         elif args.action == "rm":
-            kwargs["Key"] = key
             if args.versions:
                 kwargs["VersionId"] = version_id
             client.delete_object(**kwargs)
         elif args.action == "tag":
-            kwargs["Key"] = key
             kwargs["Tagging"] = {
                 "TagSet": [
                     {
@@ -224,19 +224,16 @@ def execute_s3_action(args, kwargs, client, data):
                 kwargs["VersionId"] = version_id
             client.put_object_tagging(**kwargs)
         elif args.action == "cp":
-            kwargs["Key"] = key
             kwargs["CopySource"]["Key"] = src_key
             if args.versions:
                 kwargs["CopySource"]["VersionId"] = version_id
             client.copy_object(**kwargs)
         elif args.action == "dl":
-            kwargs["Key"] = key
             os.makedirs(os.path.dirname(f"{args.directory}/{key}"), exist_ok=True)
             with open(f"{args.directory}/{key}", "wb") as s3_key_data:
                 kwargs["Fileobj"] = s3_key_data
                 client.download_fileobj(**kwargs)
         elif args.action == "ul":
-            kwargs["Key"] = key
             kwargs["StorageClass"] = args.storage_class
             if args.tag_names:
                 kwargs["Tagging"] = "&".join(
