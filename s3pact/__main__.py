@@ -174,6 +174,25 @@ def get_args():
     parser_ul.add_argument("--tag-names", help="Tag Names", nargs="+")
     parser_ul.add_argument("--tag-values", help="Tag Values", nargs="+")
 
+    # restore parser
+    parser_restore = subparsers.add_parser(
+        "restore",
+        parents=[parent_parser],
+        help="Restore objects to S3 Standard Class",
+    )
+    parser_restore.add_argument(
+        "--restore-days",
+        help="Lifetime of the active copy in days",
+        type=int,
+        default=3,
+    )
+    parser_restore.add_argument(
+        "--restore-tier",
+        help="Retrieval tier at which the restore will be processed",
+        choices=["Bulk", "Standard", "Expedited"],
+        default="Bulk",
+    )
+
     args = parser.parse_args()
     return args
 
@@ -245,6 +264,14 @@ def execute_s3_action(args, kwargs, client, data):
             with open(src_key, "rb") as f:
                 kwargs["Body"] = f
                 client.put_object(**kwargs)
+        elif args.action == "restore":
+            kwargs["RestoreRequest"] = {
+                "Days": args.restore_days,
+                "GlacierJobParameters": {
+                    "Tier": args.restore_tier,
+                },
+            }
+            client.restore_object(**kwargs)
 
     except Exception as e:
         status = "ERROR"
